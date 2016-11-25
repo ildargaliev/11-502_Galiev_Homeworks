@@ -1,0 +1,278 @@
+package ru.kpfu;
+
+import com.google.gson.Gson;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonParser;
+import com.google.gson.reflect.TypeToken;
+
+import javax.swing.*;
+import javax.swing.border.TitledBorder;
+import javax.swing.event.TableModelListener;
+import javax.swing.table.TableModel;
+import java.awt.*;
+import java.awt.event.KeyEvent;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.lang.reflect.Type;
+import java.net.HttpURLConnection;
+import java.net.URL;
+
+public class View {
+
+    private JFrame mainFrame;
+    private JLabel nameLabel;
+    private JTextField nameField;
+    private JPanel productFormPanel;
+    private JLabel numberLabel;
+    private JTextField numberField;
+    private JButton saveButton;
+    private JTextField surnameField;
+    private JLabel budgetLabel;
+    private JCheckBox budgetCheck;
+    private JTable table;
+    private Student[] s;
+    private JScrollPane scrollPane;
+
+
+
+    private void gui() {
+        try {
+
+        String url = "http://localhost:3000/students";
+        URL obj = new URL(url);
+        HttpURLConnection connection = (HttpURLConnection) obj.openConnection();
+        connection.setRequestMethod("GET");
+        int responseCode = connection.getResponseCode();
+        System.out.println("\nSending 'GET' request to URL : " + url);
+        System.out.println("Response Code : " + responseCode);
+
+        BufferedReader in = new BufferedReader(
+                new InputStreamReader(connection.getInputStream()));
+        String inputLine;
+        StringBuilder response = new StringBuilder();
+
+        while ((inputLine = in.readLine()) != null) {
+            response.append(inputLine);
+        }
+        in.close();
+
+        JsonParser parser = new JsonParser();
+        JsonElement element = parser.parse(response.toString());
+        Type itemsArrType = new TypeToken<Student[]>() {
+        }.getType();
+        s = new Gson().fromJson(element, itemsArrType);
+
+
+        // Create main frame and set it up
+        mainFrame = new JFrame("Students");
+        mainFrame.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
+        mainFrame.getContentPane().setLayout(new GridBagLayout());
+        // Let Frame to be closed on ESC:
+        // for global Key listening use KeyboardFocusManager
+        // It is needed due to focus-listen behavior
+        } catch (IOException e){
+            e.printStackTrace();
+        }
+        KeyboardFocusManager.getCurrentKeyboardFocusManager()
+                .addKeyEventDispatcher(e -> {
+                    if (e.getKeyCode() == KeyEvent.VK_ESCAPE) {
+                        System.exit(0);
+                    }
+                    return false;
+                });
+
+        // Add Components
+
+        table = new JTable(new TableModel() {
+//            private Set<TableModelListener> listeners = new HashSet<>();
+            @Override
+            public int getRowCount() {
+                return s.length;
+            }
+
+            @Override
+            public int getColumnCount() {
+                return 5;
+            }
+
+            @Override
+            public String getColumnName(int c) {
+                switch (c) {
+                    case 0:
+                        return "ID";
+                    case 1:
+                        return "Имя";
+                    case 2:
+                        return "Фамилия";
+                    case 3:
+                        return "Номер";
+                    case 4:
+                        return "Бюджет";
+                    default:
+                        return "Другое";
+                }
+            }
+
+            @Override
+            public Class<?> getColumnClass(int columnIndex) {
+                return String.class;
+            }
+
+            @Override
+            public boolean isCellEditable(int rowIndex, int columnIndex) {
+                return false;
+            }
+
+            @Override
+            public Object getValueAt(int r, int c) {
+                switch (c) {
+                    case 0:
+                        return s[r].getId();
+                    case 1:
+                        return s[r].getName();
+                    case 2:
+                        return s[r].getSurname();
+                    case 3:
+                        return s[r].getNumber();
+                    case 4:
+                        return s[r].isBudget();
+                    case 5:
+                        return s[r].getName();
+                    default:
+                        return null;
+                }
+            }
+
+            @Override
+            public void setValueAt(Object aValue, int rowIndex, int columnIndex) {
+
+            }
+
+            @Override
+            public void addTableModelListener(TableModelListener l) {
+            }
+
+            @Override
+            public void removeTableModelListener(TableModelListener l) {
+            }
+        });
+        scrollPane = new JScrollPane(table);
+
+
+        productFormPanel = new JPanel(new GridBagLayout());
+
+        nameLabel = new JLabel("Имя", JLabel.LEFT);
+        productFormPanel.add(nameLabel, this.newLabelConstraints());
+
+        nameField = new JTextField();
+        nameLabel.setLabelFor(nameField);
+        productFormPanel.add(nameField, this.newTextFieldConstraints());
+
+
+        JLabel surnameLabel = new JLabel("Фамилия", JLabel.LEFT);
+        productFormPanel.add(surnameLabel, this.newLabelConstraints());
+
+        surnameField = new JTextField();
+        surnameLabel.setLabelFor(surnameField);
+        productFormPanel.add(surnameField, this.newTextFieldConstraints());
+
+        numberLabel = new JLabel("Номер", JLabel.LEFT);
+        productFormPanel.add(numberLabel, this.newLabelConstraints());
+
+        numberField = new JTextField();
+        numberLabel.setLabelFor(numberField);
+        productFormPanel.add(numberField, this.newTextFieldConstraints());
+
+        budgetLabel = new JLabel("Бюджет", JLabel.LEFT);
+        productFormPanel.add(budgetLabel, this.newLabelConstraints());
+
+        budgetCheck = new JCheckBox();
+        budgetLabel.setLabelFor(budgetCheck);
+        productFormPanel.add(budgetCheck, this.newTextFieldConstraints());
+
+        // Add a spacer to push all the form rows to the top of the window.
+        GridBagConstraints spacer = new GridBagConstraints();
+        spacer.fill = GridBagConstraints.BOTH;
+        spacer.gridwidth = GridBagConstraints.REMAINDER;
+        spacer.weighty = 1.0;
+        productFormPanel.add(new JPanel(), spacer);
+
+        saveButton = new JButton("Save");
+        saveButton.addActionListener(e -> {
+            JDialog dialog = new JDialog(mainFrame, "Saving");
+            dialog.setLayout(new FlowLayout());
+            JLabel dialogLabel = new JLabel("Element has been saved", JLabel.CENTER);
+            dialog.add(dialogLabel);
+            JButton dialogButton = new JButton("OK");
+            dialogButton.addActionListener(e1 -> dialog.setVisible(false));
+            dialog.add(dialogButton);
+            dialog.setBounds(100, 100, 200, 80);
+            dialog.setResizable(false);
+            dialog.setVisible(true);
+        });
+        productFormPanel.add(saveButton, this.newTextFieldConstraints());
+
+        productFormPanel.setBorder(new TitledBorder("Form"));
+        GridBagConstraints con = new GridBagConstraints();
+        con.anchor = GridBagConstraints.NORTHWEST;
+        con.weightx = 2;
+        con.weighty = 1;
+        con.fill = GridBagConstraints.BOTH;
+        con.gridx = 0;
+        con.gridy = 0;
+        mainFrame.add(scrollPane, con);
+
+
+        con.weightx = 1;
+        con.weighty = 1;
+        con.fill = GridBagConstraints.HORIZONTAL;
+        con.gridx = 2;
+        con.gridy = 0;
+        mainFrame.add(productFormPanel, con);
+
+
+        // Set up main frame's settings
+        mainFrame.setBounds(100, 50, 800, 450);
+//        mainFrame.setResizable(false);
+        mainFrame.setVisible(true);
+    }
+
+    private GridBagConstraints newConstraints() {
+        GridBagConstraints c = new GridBagConstraints();
+        // a little breathing room
+        c.insets = new Insets(2, 2, 2, 2);
+        return c;
+    }
+
+    private GridBagConstraints newLabelConstraints() {
+        GridBagConstraints c = this.newConstraints();
+        // right-align labels
+        c.anchor = GridBagConstraints.BASELINE_TRAILING;
+        // do not grow labels
+        c.weightx = 0.0;
+        return c;
+    }
+
+    private GridBagConstraints newTextFieldConstraints() {
+        GridBagConstraints c = this.newConstraints();
+        c.anchor = GridBagConstraints.BASELINE;
+        // grow text fields horizontally
+        c.weightx = 1.0;
+        c.fill = GridBagConstraints.HORIZONTAL;
+        // text fields end a row
+        c.gridwidth = GridBagConstraints.REMAINDER;
+        return c;
+    }
+    public static void main(String[] args) {
+        javax.swing.SwingUtilities.invokeLater(() -> {
+            View view = new View();
+            view.gui();
+        });
+    }
+
+
+}
+
+
+
